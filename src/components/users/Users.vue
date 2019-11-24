@@ -88,6 +88,7 @@
             plain
             icon="el-icon-check"
             size="mini"
+            @click="showUserAssignDialog(scope.row)"
           >分配角色</el-button>
         </template>
       </el-table-column>
@@ -209,6 +210,63 @@
         >确 定</el-button>
       </div>
     </el-dialog>
+
+    <!-- 分配角色对话框 -->
+    <el-dialog
+      class="elDialog"
+      title="分配角色"
+      :visible.sync="showRolersDialog"
+    >
+      <el-form :model="userAssignForm">
+        <el-form-item
+          label="用户名"
+          :label-width="formLabelWidth"
+        >
+          <el-input
+            disabled
+            v-model="userAssignForm.username"
+            autocomplete="off"
+          ></el-input>
+        </el-form-item>
+        <el-form-item
+          label="角色列表"
+          :label-width="formLabelWidth"
+        >
+          <!--
+          下拉选择框
+
+          label 表示：使用数据中的哪个属性来表示展示的文字内容
+          value 表示：表示每一项的值，一般就是id
+          v-model 表示：选中 option 的value值，也是id值
+            只要 v-model 与 el-option 的value属性值相同，那么这一项就会默认选中
+        -->
+          <el-select
+            v-model="userAssignForm.roleId"
+            placeholder="请选择角色"
+          >
+            <el-option
+              v-for="item in rolesList"
+              :key="item.id"
+              :label="item.roleName"
+              :value="item.id"
+            ></el-option>
+
+          </el-select>
+        </el-form-item>
+
+      </el-form>
+      <div
+        slot="footer"
+        class="dialog-footer"
+      >
+        <el-button @click="showRolersDialog = false">取 消</el-button>
+        <el-button
+          type="primary"
+          @click="assignRolersToUser"
+        >确 定</el-button>
+      </div>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -216,6 +274,8 @@
 export default {
   created() {
     this.getUserList();
+    // 获取角色列表
+    this.getRoleList();
   },
   data() {
     return {
@@ -294,7 +354,20 @@ export default {
             trigger: "change"
           }
         ]
-      }
+      },
+
+      // 用户角色对话框数据
+      showRolersDialog: false,
+      userAssignForm: {
+        // 用户id
+        userId: -1,
+        // 用户角色id
+        roleId: -1,
+        // 用户名
+        username: ""
+      },
+      formLabelWidth: "120px",
+      rolesList: []
     };
   },
   methods: {
@@ -316,7 +389,7 @@ export default {
         this.curPage = data.pagenum;
       }
     },
-
+    // 启用或禁用用户
     async changeUserState(id, curState) {
       // console.log(id, curState);
       const res = await this.$http.put(`/users/${id}/state/${curState}`);
@@ -466,6 +539,60 @@ export default {
             message: "已取消删除"
           });
         });
+    },
+
+    // 点击分配角色弹出分配角色对话框
+    async showUserAssignDialog(curRolers) {
+      this.showRolersDialog = true;
+      // console.log(curRolers);
+      const { id, username, role_name } = curRolers;
+      // 给分配角色数据赋值
+      this.userAssignForm.username = username;
+      // 暂存用户id
+      this.userAssignForm.userId = id;
+      // 选择默认角色
+      // 根据当前用户的id，获取角色id
+      const res = await this.$http.get(`users/${id}`);
+      // console.log(res);
+      const { meta, data } = res.data;
+      if (meta.status === 200) {
+        // 设置当前用户具有的角色id
+        // console.log(data.rid);
+        this.userAssignForm.roleId = data.rid;
+
+        // 没有角色的情况下，进行特殊处理，什么不选中
+        if (data.rid === -1) {
+          this.userAssignForm.roleId = "";
+        }
+      }
+    },
+
+    // 获取角色列表
+    async getRoleList() {
+      const res = await this.$http.get("/roles");
+      // console.log(res);
+      const { meta, data } = res.data;
+      if (meta.status === 200) {
+        this.rolesList = data;
+        console.log(data);
+      }
+    },
+
+    // 点击确定按钮，给用户分配新的角色
+    async assignRolersToUser() {
+      // 拿到用户id，和用户角色id
+      const { userId, roleId } = this.userAssignForm;
+
+      // 发送请求更新数据
+      const res = await this.$http.put(`users/${userId}/role`, { rid: roleId });
+
+      const { meta } = res.data;
+      if (meta.status === 200) {
+        // 关闭对话框
+        this.showRolersDialog = false;
+        // 重新刷新列表
+        this.getUserList(this.curPage);
+      }
     }
   }
 };

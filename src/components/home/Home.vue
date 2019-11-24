@@ -36,8 +36,8 @@
         @close 菜单收起事件
         -->
         <el-menu
+          :default-active="location"
           :router="true"
-          default-active="/home/users"
           class="el-menu-vertical-demo"
           @open="handleOpen"
           @close="handleClose"
@@ -89,6 +89,15 @@
 
 <script>
 export default {
+  created() {
+    this.location = location.hash.split("#")[1];
+  },
+
+  data() {
+    return {
+      location: ""
+    };
+  },
   methods: {
     // 退出功能
     logout() {

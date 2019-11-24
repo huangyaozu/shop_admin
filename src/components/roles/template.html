@@ -1,0 +1,141 @@
+<div>
+  <!-- 面包屑导航 -->
+  <el-breadcrumb class="breadcrumb" separator-class="el-icon-arrow-right">
+    <el-breadcrumb-item :to="{ path: '/home' }">首页</el-breadcrumb-item>
+    <el-breadcrumb-item>权限管理</el-breadcrumb-item>
+    <el-breadcrumb-item>角色列表</el-breadcrumb-item>
+  </el-breadcrumb>
+
+  <!-- highlight-current-row:是否高亮显示当前行 -->
+  <el-table
+    :stripe="true"
+    ref="singleTable"
+    :data="rolesList"
+    style="width: 100%"
+  >
+    <el-table-column type="expand" width="50">
+      <template slot-scope="scope">
+        <el-row v-if="scope.row.children.length === 0">
+          暂无权限，请分配
+        </el-row>
+        <!-- 一级菜单 -->
+        <el-row
+          v-else
+          class="level1-row"
+          v-for="item in scope.row.children"
+          :key="item.id"
+        >
+          <el-col :span="6">
+            <el-tag size="meiudm" closable> {{item.authName}} </el-tag
+            ><i
+              class="el-icon-arrow-right
+            "
+            ></i>
+          </el-col>
+          <el-col :span="18">
+            <!-- 二级菜单 -->
+            <el-row
+              class="level2-row"
+              v-for="item1 in item.children"
+              :key="item1.id"
+            >
+              <el-col :span="6">
+                <el-tag type="success" size="meiudm" closable
+                  >{{item1.authName}} </el-tag
+                ><i
+                  class="el-icon-arrow-right
+                "
+                ></i>
+              </el-col>
+              <el-col :span="18">
+                <!-- 三级菜单 -->
+                <span
+                  class="level3-tag"
+                  v-for="item2 in item1.children"
+                  :key="item2.id"
+                >
+                  <el-tag type="warning" size="meiudm" closable
+                    >{{item2.authName}}
+                  </el-tag>
+                </span>
+              </el-col>
+            </el-row>
+          </el-col>
+        </el-row>
+      </template>
+    </el-table-column>
+    <el-table-column type="index" :index="indexMethod" width="50">
+    </el-table-column>
+    <el-table-column property="roleName" label="角色名称" width="120">
+    </el-table-column>
+    <el-table-column prop="roleDesc" label="描述" width="180">
+    </el-table-column>
+    <el-table-column label="操作">
+      <template slot-scope="scope">
+        <el-button
+          type="primary"
+          plain
+          icon="el-icon-edit"
+          size="mini"
+          @click="showRolesEditDailog(scope.row)"
+        ></el-button>
+        <el-button
+          type="danger"
+          plain
+          icon="el-icon-delete"
+          size="mini"
+          @click="delRolesById(scope.row.id)"
+        ></el-button>
+        <el-button
+          type="success"
+          plain
+          icon="el-icon-check"
+          size="mini"
+          @click="showRightsDialog(scope.row.children, scope.row.id)"
+          >分配权限</el-button
+        >
+      </template>
+    </el-table-column>
+  </el-table>
+
+  <!-- 角色列表编辑对话框 -->
+  <el-dialog
+    class="el-title"
+    title="编辑角色"
+    :visible.sync="dialogFormVisible"
+  >
+    <el-form :model="rolesdata">
+      <el-form-item label="角色名称" :label-width="formLabelWidth">
+        <el-input v-model="rolesdata.roleName"></el-input>
+      </el-form-item>
+      <el-form-item label="角色描述" :label-width="formLabelWidth">
+        <el-input v-model="rolesdata.roleDesc"></el-input>
+      </el-form-item>
+    </el-form>
+    <div slot="footer" class="dialog-footer">
+      <el-button @click="dialogFormVisible = false">取 消</el-button>
+      <el-button type="primary" @click="updateRolers">确 定</el-button>
+    </div>
+  </el-dialog>
+
+  <!-- 权限分配对话框 -->
+  <el-dialog
+    class="el-title"
+    title="分配权限"
+    :visible.sync="assignRightDialog"
+  >
+    <el-tree
+      ref="rightsTree"
+      :data="rightsTree"
+      show-checkbox
+      node-key="id"
+      :default-expand-all="true"
+      :props="defaultProps"
+    >
+    </el-tree>
+    <div slot="footer" class="dialog-footer">
+      <el-button @click="assignRightDialog = false">取 消</el-button>
+      <el-button type="primary" @click="assignRights">确 定</el-button>
+    </div>
+  </el-dialog>
+</div>
